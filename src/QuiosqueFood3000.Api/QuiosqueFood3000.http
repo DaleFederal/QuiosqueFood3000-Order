@@ -1,0 +1,11 @@
+@QuiosqueFood3000_HostAddress = http://localhost:5005
+
+GET {{QuiosqueFood3000_HostAddress}}/swagger/
+Accept: application/json
+
+###
+
+GET {{QuiosqueFood3000_HostAddress}}/swagger/1
+Accept: application/json
+
+###
