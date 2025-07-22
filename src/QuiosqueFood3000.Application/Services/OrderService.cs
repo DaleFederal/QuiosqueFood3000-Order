@@ -162,7 +162,7 @@ public class OrderService(IOrderRepository orderRepository) : IOrderService
         {
             throw new InvalidOperationException(resultOrder.ToString());
         }
-        orderRepository.RegisterOrder(order);
+        order = orderRepository.RegisterOrder(order);
 
         orderDto.Id = order.Id.ToString();
         return orderDto;

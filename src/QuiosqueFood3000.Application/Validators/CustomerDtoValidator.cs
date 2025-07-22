@@ -8,7 +8,7 @@ public class CustomerDtoValidator : AbstractValidator<CustomerDto>
     public CustomerDtoValidator()
     {
         RuleFor(customerDto => customerDto.Name).NotNull();
-        RuleFor(customerDto => customerDto.Cpf).NotNull().NotEmpty().Must(cpf => CpfHelper.IsValidCpf(cpf)).WithMessage("O CPF não está válido");
+        RuleFor(customerDto => customerDto.Cpf).NotNull().NotEmpty().When(customerDto => !string.IsNullOrEmpty(customerDto.Cpf)).Must(cpf => CpfHelper.IsValidCpf(cpf)).WithMessage("O CPF não está válido");
         RuleFor(customerDto => customerDto.Email).NotNull().NotEmpty().Must(email => EmailHelper.IsValidEmail(email)).WithMessage("O E-mail não está válido");
 
     }

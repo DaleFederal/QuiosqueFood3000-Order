@@ -2,8 +2,13 @@
 {
     public static class CpfHelper
     {
-        public static bool IsValidCpf(string cpf)
+        public static bool IsValidCpf(string? cpf)
         {
+            if (string.IsNullOrWhiteSpace(cpf))
+            {
+                return false;
+            }
+
             int[] multiplier1 = [10, 9, 8, 7, 6, 5, 4, 3, 2];
             int[] multiplier2 = [11, 10, 9, 8, 7, 6, 5, 4, 3, 2];
 
@@ -56,9 +61,9 @@
             verificationDigit = verificationDigit + modulo.ToString();
             return cpf.EndsWith(verificationDigit);
         }
-        public static string RemoveSpecialCaracters(string str)
+        public static string RemoveSpecialCaracters(string? str)
         {
-            return str.Trim().Replace(".", "").Replace("-", "");
+            return str?.Trim().Replace(".", "").Replace("-", "") ?? string.Empty;
         }
     }
 }

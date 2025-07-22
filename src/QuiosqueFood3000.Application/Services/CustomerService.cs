@@ -45,7 +45,7 @@ public class CustomerService(ICustomerRepository customerRepository) : ICustomer
         {
             throw new InvalidDataException(resultCustomer.ToString());
         }
-        customerRepository.RegisterCustomer(customer);
+        customer = customerRepository.RegisterCustomer(customer);
         customerDto = new CustomerDto()
         {
             Id = customer.Id.ToString(),
@@ -75,7 +75,7 @@ public class CustomerService(ICustomerRepository customerRepository) : ICustomer
 
         if (customerDto == null)
         {
-            throw new ArgumentNullException("O cliente não pode ser nulo");
+            throw new ArgumentNullException("O cliente nï¿½o pode ser nulo");
         }
 
         if (string.IsNullOrWhiteSpace(customerDto.Id))

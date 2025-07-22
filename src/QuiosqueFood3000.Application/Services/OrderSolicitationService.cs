@@ -244,11 +244,9 @@ public class OrderSolicitationService(IOrderSolicitationRepository OrderSolicita
         {
             throw new InvalidDataException(resultOrderItem.ToString());
         }
-        if (orderSolicitation.OrderItemsList?.Count < 1)
+        if (orderSolicitation.OrderItemsList == null || !orderSolicitation.OrderItemsList.Any())
         {
-            orderSolicitation.OrderItemsList.Remove(orderItem);
-            orderSolicitation.TotalValue = this.CalculateTotalValue(orderSolicitation);
-            OrderSolicitationRepository.UpdateOrderSolicitation(orderSolicitation);
+            throw new InvalidOperationException("A solicitação de pedido não contém itens para remover.");
         }
         else
         {
