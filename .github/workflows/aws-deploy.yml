@@ -10,7 +10,7 @@ env:
   ECR_REPOSITORY: quiosque-food-repository # Nome do repositório ECR, alinhado com o Terraform
   EKS_CLUSTER_NAME: quiosque-food-cluster # Nome do cluster EKS, alinhado com o Terraform
   IMAGE_TAG: ${{ github.sha }}
-  DOTNET_VERSION: '8.0.x' # Versão do .NET
+  DOTNET_VERSION: '9.0.x' # Versão do .NET
 
 jobs:
   build-and-test:
