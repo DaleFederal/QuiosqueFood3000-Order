@@ -31,15 +31,8 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
 
-    - name: Test with coverage
-      run: dotnet test --no-build --verbosity normal /p:CollectCoverage=true /p:CoverletOutputFormat=cobertura /p:CoverletOutputDirectory="${{ github.workspace }}/TestResults/Coverage/"
-
-    - name: ReportGenerator
-      uses: danielpalme/reportgenerator-github-action@5.3.0
-      with:
-        reports: '${{ github.workspace }}/TestResults/Coverage/**/*.xml'
-        targetdir: '${{ github.workspace }}/coveragereport'
-        reporttypes: 'Html_Dark'
+    - name: Test
+      run: dotnet test --no-build --verbosity normal
 
   build-and-push:
     name: Build and Push to ECR
