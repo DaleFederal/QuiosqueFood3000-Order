@@ -153,6 +153,47 @@ Com isso nós criamos e enviamos a imagem Docker, iniciamos o Minikube e aplicam
 
 Após iniciar os contêineres, você pode acessar a API REST do .Net Framework documentada através do Swagger para consumo das APIs através do seu navegador no endereço [http://localhost:5000/swagger](http://localhost:5000/swagger).
 
+## 🚀 Deploy na AWS com GitHub Actions
+
+Siga os passos abaixo para configurar o deploy automatizado da sua aplicação na AWS utilizando o GitHub Actions.
+
+### Pré-requisitos
+
+- Conta na AWS com permissões para criar e gerenciar recursos do ECR e EKS.
+- `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` gerados para um usuário IAM com as permissões necessárias.
+
+### Passo a passo
+
+1️⃣ **Configurar os Secrets no GitHub**
+
+   Vá em `Settings > Secrets and variables > Actions` no seu repositório do GitHub e crie os seguintes secrets:
+
+   - `AWS_ACCESS_KEY_ID`: Sua chave de acesso da AWS.
+   - `AWS_SECRET_ACCESS_KEY`: Sua chave de acesso secreta da AWS.
+
+2️⃣ **Atualizar o arquivo de Workflow**
+
+   Abra o arquivo `.github/workflows/aws-deploy.yml` e atualize as variáveis de ambiente com os seus dados da AWS:
+
+   ```yaml
+   env:
+     AWS_REGION: SUA_REGIAO_AWS               # ex: us-east-1
+     ECR_REPOSITORY: SEU_ECR_REPOSITORY         # ex: quiosque-food-order
+     EKS_CLUSTER_NAME: SEU_EKS_CLUSTER_NAME     # ex: Quioscluster
+     IMAGE_TAG: ${{ github.sha }}
+   ```
+
+3️⃣ **Acompanhar o Deploy**
+
+   Após fazer o push das alterações para a branch `main`, o workflow será executado automaticamente. Você pode acompanhar o progresso na aba `Actions` do seu repositório no GitHub.
+
+O pipeline irá:
+
+- Fazer o build da imagem Docker da sua aplicação.
+- Enviar a imagem para o seu repositório no Amazon ECR.
+- Atualizar o arquivo de deployment do Kubernetes com a nova imagem.
+- Aplicar os manifestos do Kubernetes no seu cluster EKS, fazendo o deploy da aplicação e do banco de dados PostgreSQL.
+
 ## 👨‍💼 Colaboradores
 
 - Felipe Toshio Amanuma Soares - RM359862
