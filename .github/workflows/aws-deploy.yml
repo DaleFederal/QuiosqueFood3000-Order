@@ -6,9 +6,9 @@ on:
       - main
 
 env:
-  AWS_REGION: SUA_REGIAO_AWS
-  ECR_REPOSITORY: SEU_ECR_REPOSITORY
-  EKS_CLUSTER_NAME: SEU_EKS_CLUSTER_NAME
+  AWS_REGION: us-east-1 # Região da AWS, alinhada com o Terraform
+  ECR_REPOSITORY: quiosque-food-repository # Nome do repositório ECR, alinhado com o Terraform
+  EKS_CLUSTER_NAME: quiosque-food-cluster # Nome do cluster EKS, alinhado com o Terraform
   IMAGE_TAG: ${{ github.sha }}
 
 jobs:
