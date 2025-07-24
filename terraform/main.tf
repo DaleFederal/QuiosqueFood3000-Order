@@ -2,6 +2,11 @@ provider "aws" {
   region = var.aws_region
 }
 
+# Pesquisa pelo Role pré-existente do AWS Academy
+data "aws_iam_role" "lab_role" {
+  name = "LabRole"
+}
+
 # Bucket S3 para guardar artefatos de deploy
 resource "aws_s3_bucket" "deploy_artifacts" {
   bucket = "quiosque-deploy-artifacts-${random_id.bucket_suffix.hex}"
@@ -87,10 +92,10 @@ EOF
 
 # Instância EC2
 resource "aws_instance" "app_server" {
-  ami           = "ami-0cbbe2c6a1bb2ad63" # Amazon Linux 2 AMI (us-east-1)
+  ami           = "ami-0c55b159cbfafe1f0" # Verifique se esta AMI é válida na sua região
   instance_type = "t2.micro"
-  # Atribui a Role pré-existente do AWS Academy
-  iam_instance_profile = "LabRole"
+  # Atribui a Role pré-existente do AWS Academy usando o nome pesquisado
+  iam_instance_profile = data.aws_iam_role.lab_role.name
   security_groups = [aws_security_group.app_sg.name]
   user_data = local.user_data
 
