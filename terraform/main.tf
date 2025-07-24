@@ -87,7 +87,7 @@ EOF
 
 # Instância EC2
 resource "aws_instance" "app_server" {
-  ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI (us-east-1)
+  ami           = "ami-0cbbe2c6a1bb2ad63" # Amazon Linux 2 AMI (us-east-1)
   instance_type = "t2.micro"
   # Atribui a Role pré-existente do AWS Academy
   iam_instance_profile = "LabRole"
