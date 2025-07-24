@@ -1,44 +1,19 @@
-# outputs.tf - Outputs úteis
-output "ec2_public_ip" {
+output "ecr_repository_url" {
+  description = "URL do repositório ECR criado"
+  value       = aws_ecr_repository.api_repo.repository_url
+}
+
+output "instance_public_ip" {
   description = "IP público da instância EC2"
   value       = aws_instance.app_server.public_ip
 }
 
-output "ec2_public_dns" {
-  description = "DNS público da instância EC2"
-  value       = aws_instance.app_server.public_dns
+output "instance_id" {
+  description = "ID da instância EC2 para o SSM"
+  value       = aws_instance.app_server.id
 }
 
-output "elastic_ip" {
-  description = "Elastic IP associado à instância"
-  value       = aws_eip.app_eip.public_ip
-}
-
-
-
-output "application_url" {
-  description = "URL da aplicação"
-  value       = "http://${aws_eip.app_eip.public_ip}"
-}
-
-output "postgresql_connection" {
-  description = "String de conexão PostgreSQL (externa)"
-  value       = "Host=${aws_eip.app_eip.public_ip};Port=5432;Database=QuiosqueFood3000;Username=postgres;Password=123456"
-  sensitive   = true
-}
-
-output "useful_commands" {
-  description = "Comandos úteis após conectar no servidor"
-  value = {
-    deploy       = "qf-deploy"
-    status       = "qf-status"
-    logs_app     = "qf-logs app"
-    logs_db      = "qf-logs db"
-    logs_all     = "qf-logs all"
-    backup       = "qf-backup"
-    go_to_app    = "qf-app"
-    restart_app  = "docker-compose restart app"
-    restart_db   = "docker-compose restart db"
-    rebuild_app  = "docker-compose up -d --build app"
-  }
+output "s3_bucket_name" {
+  description = "Nome do bucket S3 para artefatos"
+  value       = aws_s3_bucket.deploy_artifacts.bucket
 }

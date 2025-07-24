@@ -1,116 +1,63 @@
-# main.tf - Modificado para AWS Academy
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
-    }
-  }
-}
-
 provider "aws" {
   region = var.aws_region
 }
 
-# VPC para a instância EC2
-resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  
-  tags = {
-    Name = "quiosque-vpc"
-  }
+# Bucket S3 para guardar artefatos de deploy
+resource "aws_s3_bucket" "deploy_artifacts" {
+  bucket = "quiosque-deploy-artifacts-${random_id.bucket_suffix.hex}"
 }
 
-resource "aws_subnet" "main" {
-  vpc_id                  = aws_vpc.main.id
-  cidr_block              = "10.0.1.0/24"
-  map_public_ip_on_launch = true
-  availability_zone       = data.aws_availability_zones.available.names[0]
-  
-  tags = {
-    Name = "quiosque-subnet"
-  }
+resource "random_id" "bucket_suffix" {
+  byte_length = 8
 }
 
-resource "aws_internet_gateway" "main" {
-  vpc_id = aws_vpc.main.id
-  tags = {
-    Name = "quiosque-igw"
-  }
+# Role para a instância EC2 ter acesso ao ECR, SSM e S3
+resource "aws_iam_role" "app_role" {
+  name = "ec2-app-role"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [
+      {
+        Action = "sts:AssumeRole",
+        Effect = "Allow",
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
 }
 
-resource "aws_route_table" "main" {
-  vpc_id = aws_vpc.main.id
-
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.main.id
-  }
-
-  tags = {
-    Name = "quiosque-route-table"
-  }
+# Anexa as políticas necessárias à Role
+resource "aws_iam_role_policy_attachment" "ssm_policy" {
+  role       = aws_iam_role.app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
-resource "aws_route_table_association" "main" {
-  subnet_id      = aws_subnet.main.id
-  route_table_id = aws_route_table.main.id
+resource "aws_iam_role_policy_attachment" "ecr_policy" {
+  role       = aws_iam_role.app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
-# Data source para pegar AZs disponíveis
-data "aws_availability_zones" "available" {
-  state = "available"
+resource "aws_iam_role_policy_attachment" "s3_policy" {
+  role       = aws_iam_role.app_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess" # Acesso de leitura ao S3
 }
 
-# Security Group otimizado
+
+# Repositório para a imagem Docker da API
+resource "aws_ecr_repository" "api_repo" {
+  name = var.ecr_repo_name
+}
+
+# Security Group para a instância EC2
 resource "aws_security_group" "app_sg" {
-  name_prefix = "quiosque-sg-"
-  description = "Security group for Quiosque Food application"
-  vpc_id      = aws_vpc.main.id
+  name        = "app-sg"
+  description = "Allow app traffic"
 
-  # HTTP
   ingress {
-    description = "HTTP"
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # HTTPS
-  ingress {
-    description = "HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # SSH
-  ingress {
-    description = "SSH"
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # PostgreSQL (apenas para desenvolvimento - considere restringir em produção)
-  ingress {
-    description = "PostgreSQL"
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  # Porta da aplicação .NET (caso precise acessar diretamente)
-  ingress {
-    description = "DotNet App"
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = 5000 # Porta da sua API
+    to_port     = 5000
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -121,60 +68,72 @@ resource "aws_security_group" "app_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
-  tags = {
-    Name = "quiosque-security-group"
-  }
 }
 
-# Instância EC2 com configuração completa
+# Script de inicialização da instância EC2
+# Instala Docker, Docker Compose e inicia os contêineres
+locals {
+  user_data = <<-EOT
+              #!/bin/bash
+              sudo yum update -y
+              sudo yum install -y docker aws-cli
+              sudo service docker start
+              sudo usermod -a -G docker ec2-user
+
+              # Instalar Docker Compose
+              sudo curl -L https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/local/bin/docker-compose
+              sudo chmod +x /usr/local/bin/docker-compose
+
+              # Criar diretório da aplicação
+              mkdir -p /home/ec2-user/app
+              cd /home/ec2-user/app
+
+              # Salvar a senha do banco em um arquivo de ambiente
+              echo "POSTGRES_PASSWORD=${var.db_password}" > .env
+              
+              # Baixar o docker-compose.prod.yml
+              cat <<'EOF' > docker-compose.prod.yml
+services:
+  app:
+    image: ${aws_ecr_repository.api_repo.repository_url}:latest
+    ports:
+      - "5000:8080"
+    depends_on:
+      - db
+    environment:
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=QuiosqueFood3000;Username=postgres;Password=${POSTGRES_PASSWORD}
+
+  db:
+    image: postgres:latest
+    container_name: postgres_container
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=QuiosqueFood3000
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  db-data:
+EOF
+              EOT
+}
+
+resource "aws_iam_instance_profile" "app_profile" {
+  name = "app-instance-profile"
+  role = aws_iam_role.app_role.name
+}
+
+# Instância EC2
 resource "aws_instance" "app_server" {
-  ami                    = var.ami_id
-  instance_type          = var.instance_type
-  key_name               = var.key_pair_name
-  subnet_id              = aws_subnet.main.id
-  vpc_security_group_ids = [aws_security_group.app_sg.id]
-
-  # Aumentar o volume root se necessário
-  root_block_device {
-    volume_type = "gp3"
-    volume_size = 20  # GB
-    encrypted   = true
-  }
-
-  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
-    github_repo = var.github_repository
-  }))
+  ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI (us-east-1)
+  instance_type = "t2.micro"
+  iam_instance_profile = aws_iam_instance_profile.app_profile.name
+  security_groups = [aws_security_group.app_sg.name]
+  user_data = local.user_data
 
   tags = {
-    Name        = "quiosque-food-server"
-    Environment = "production"
-    Project     = "QuiosqueFood3000"
+    Name = "AppServer-Quiosque"
   }
-
-  # Aguardar inicialização completa
-  provisioner "remote-exec" {
-    inline = [
-      "cloud-init status --wait"
-    ]
-
-    connection {
-      type        = "ssh"
-      user        = "ubuntu"
-      private_key = file(var.private_key_path)
-      host        = self.public_ip
-    }
-  }
-}
-
-# Elastic IP (opcional, mas recomendado)
-resource "aws_eip" "app_eip" {
-  instance = aws_instance.app_server.id
-  domain   = "vpc"
-
-  tags = {
-    Name = "quiosque-eip"
-  }
-
-  depends_on = [aws_internet_gateway.main]
 }
