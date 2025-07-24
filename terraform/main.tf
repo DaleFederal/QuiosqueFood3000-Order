@@ -101,7 +101,7 @@ services:
     depends_on:
       - db
     environment:
-      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=QuiosqueFood3000;Username=postgres;Password=${POSTGRES_PASSWORD}
+      - ConnectionStrings__DefaultConnection=Host=db;Port=5432;Database=QuiosqueFood3000;Username=postgres;Password=$${POSTGRES_PASSWORD}
 
   db:
     image: postgres:latest
