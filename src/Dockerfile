@@ -10,7 +10,7 @@ COPY src/QuiosqueFood3000.Api/QuiosqueFood3000.Api.csproj                      s
 COPY src/QuiosqueFood3000.Application/QuiosqueFood3000.Application.csproj      src/QuiosqueFood3000.Application/
 COPY src/QuiosqueFood3000.Domain/QuiosqueFood3000.Domain.csproj                src/QuiosqueFood3000.Domain/
 COPY src/QuiosqueFood3000.Infraestructure/QuiosqueFood3000.Infraestructure.csproj src/QuiosqueFood3000.Infraestructure/
-COPY QuiosqueFood3000.Order.UnitTests/QuiosqueFood3000.Order.UnitTests.csproj QuiosqueFood3000.Order.UnitTests/
+COPY src/QuiosqueFood3000.Order.UnitTests/QuiosqueFood3000.Order.UnitTests.csproj QuiosqueFood3000.Order.UnitTests/
 
 # Restaura todos os pacotes NuGet para a solução
 RUN dotnet restore QuiosqueFood3000.Order.sln
