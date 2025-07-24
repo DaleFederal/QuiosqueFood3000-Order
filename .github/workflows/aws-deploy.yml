@@ -60,13 +60,13 @@ jobs:
       with:
         terraform_version: 1.6.0 # Fixando a versão do Terraform para uma estável
 
-    - name: Terraform Validate
-      run: terraform validate
-      working-directory: terraform
-
     - name: Terraform Init
       run: terraform init
       working-directory: terraform
+
+    - name: Terraform Validate
+      run: terraform validate
+      working-directory: terraform    
 
     - name: Terraform Plan
       run: terraform plan -out=tfplan
