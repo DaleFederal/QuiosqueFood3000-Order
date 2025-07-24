@@ -92,7 +92,7 @@ EOF
 
 # Instância EC2
 resource "aws_instance" "app_server" {
-  ami           = "ami-0c55b159cbfafe1f0" # Verifique se esta AMI é válida na sua região
+  ami           = "ami-0cbbe2c6a1bb2ad63" # Verifique se esta AMI é válida na sua região
   instance_type = "t2.micro"
   # Atribui a Role pré-existente do AWS Academy usando o nome pesquisado
   iam_instance_profile = data.aws_iam_role.lab_role.name
