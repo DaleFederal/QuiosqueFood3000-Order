@@ -14,10 +14,7 @@ output "elastic_ip" {
   value       = aws_eip.app_eip.public_ip
 }
 
-output "ssh_connection" {
-  description = "Comando para conectar via SSH"
-  value       = "ssh -i ${var.key_pair_name}.pem ubuntu@${aws_eip.app_eip.public_ip}"
-}
+
 
 output "application_url" {
   description = "URL da aplicação"
