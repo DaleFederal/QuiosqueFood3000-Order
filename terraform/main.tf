@@ -11,40 +11,6 @@ resource "random_id" "bucket_suffix" {
   byte_length = 8
 }
 
-# Role para a instância EC2 ter acesso ao ECR, SSM e S3
-resource "aws_iam_role" "app_role" {
-  name = "ec2-app-role"
-  assume_role_policy = jsonencode({
-    Version = "2012-10-17",
-    Statement = [
-      {
-        Action = "sts:AssumeRole",
-        Effect = "Allow",
-        Principal = {
-          Service = "ec2.amazonaws.com"
-        }
-      }
-    ]
-  })
-}
-
-# Anexa as políticas necessárias à Role
-resource "aws_iam_role_policy_attachment" "ssm_policy" {
-  role       = aws_iam_role.app_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
-}
-
-resource "aws_iam_role_policy_attachment" "ecr_policy" {
-  role       = aws_iam_role.app_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
-}
-
-resource "aws_iam_role_policy_attachment" "s3_policy" {
-  role       = aws_iam_role.app_role.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonS3ReadOnlyAccess" # Acesso de leitura ao S3
-}
-
-
 # Repositório para a imagem Docker da API
 resource "aws_ecr_repository" "api_repo" {
   name = var.ecr_repo_name
@@ -71,7 +37,6 @@ resource "aws_security_group" "app_sg" {
 }
 
 # Script de inicialização da instância EC2
-# Instala Docker, Docker Compose e inicia os contêineres
 locals {
   user_data = <<-EOT
               #!/bin/bash
@@ -120,16 +85,12 @@ EOF
               EOT
 }
 
-resource "aws_iam_instance_profile" "app_profile" {
-  name = "app-instance-profile"
-  role = aws_iam_role.app_role.name
-}
-
 # Instância EC2
 resource "aws_instance" "app_server" {
   ami           = "ami-0c55b159cbfafe1f0" # Amazon Linux 2 AMI (us-east-1)
   instance_type = "t2.micro"
-  iam_instance_profile = aws_iam_instance_profile.app_profile.name
+  # Atribui a Role pré-existente do AWS Academy
+  iam_instance_profile = "LabRole"
   security_groups = [aws_security_group.app_sg.name]
   user_data = local.user_data
 
