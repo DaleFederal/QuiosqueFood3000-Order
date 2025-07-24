@@ -1,3 +1,4 @@
+# main.tf - Modificado para AWS Academy
 terraform {
   required_providers {
     aws = {
@@ -13,25 +14,30 @@ provider "aws" {
 
 # VPC para a instância EC2
 resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+  
   tags = {
-    Name = "main-vpc"
+    Name = "quiosque-vpc"
   }
 }
 
 resource "aws_subnet" "main" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.0.1.0/24"
+  vpc_id                  = aws_vpc.main.id
+  cidr_block              = "10.0.1.0/24"
   map_public_ip_on_launch = true
+  availability_zone       = data.aws_availability_zones.available.names[0]
+  
   tags = {
-    Name = "main-subnet"
+    Name = "quiosque-subnet"
   }
 }
 
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
   tags = {
-    Name = "main-igw"
+    Name = "quiosque-igw"
   }
 }
 
@@ -44,7 +50,7 @@ resource "aws_route_table" "main" {
   }
 
   tags = {
-    Name = "main-route-table"
+    Name = "quiosque-route-table"
   }
 }
 
@@ -53,40 +59,58 @@ resource "aws_route_table_association" "main" {
   route_table_id = aws_route_table.main.id
 }
 
-# Security Group para a instância EC2
+# Data source para pegar AZs disponíveis
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+# Security Group otimizado
 resource "aws_security_group" "app_sg" {
-  name        = "app-security-group"
-  description = "Allow HTTP, HTTPS, SSH and PostgreSQL traffic"
+  name_prefix = "quiosque-sg-"
+  description = "Security group for Quiosque Food application"
   vpc_id      = aws_vpc.main.id
 
+  # HTTP
   ingress {
-    description = "HTTP from anywhere"
+    description = "HTTP"
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # HTTPS
   ingress {
-    description = "HTTPS from anywhere"
+    description = "HTTPS"
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # SSH
   ingress {
-    description = "SSH from anywhere"
+    description = "SSH"
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  # PostgreSQL (apenas para desenvolvimento - considere restringir em produção)
   ingress {
-    description = "PostgreSQL from anywhere"
+    description = "PostgreSQL"
     from_port   = 5432
     to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Porta da aplicação .NET (caso precise acessar diretamente)
+  ingress {
+    description = "DotNet App"
+    from_port   = 8080
+    to_port     = 8080
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -99,28 +123,58 @@ resource "aws_security_group" "app_sg" {
   }
 
   tags = {
-    Name = "app-security-group"
+    Name = "quiosque-security-group"
   }
 }
 
-# Instância EC2
+# Instância EC2 com configuração completa
 resource "aws_instance" "app_server" {
-  ami           = var.ami_id
-  instance_type = var.instance_type
-  key_name      = var.key_pair_name
-  subnet_id     = aws_subnet.main.id
+  ami                    = var.ami_id
+  instance_type          = var.instance_type
+  key_name               = var.key_pair_name
+  subnet_id              = aws_subnet.main.id
   vpc_security_group_ids = [aws_security_group.app_sg.id]
 
-  user_data = <<-EOF
-              #!/bin/bash
-              sudo apt-get update -y
-              sudo apt-get install -y docker.io docker-compose
-              sudo systemctl start docker
-              sudo systemctl enable docker
-              sudo usermod -aG docker ubuntu
-              EOF
+  # Aumentar o volume root se necessário
+  root_block_device {
+    volume_type = "gp3"
+    volume_size = 20  # GB
+    encrypted   = true
+  }
+
+  user_data = base64encode(templatefile("${path.module}/user_data.sh", {
+    github_repo = var.github_repository
+  }))
 
   tags = {
-    Name = "app-server"
+    Name        = "quiosque-food-server"
+    Environment = "production"
+    Project     = "QuiosqueFood3000"
   }
+
+  # Aguardar inicialização completa
+  provisioner "remote-exec" {
+    inline = [
+      "cloud-init status --wait"
+    ]
+
+    connection {
+      type        = "ssh"
+      user        = "ubuntu"
+      private_key = file(var.private_key_path)
+      host        = self.public_ip
+    }
+  }
+}
+
+# Elastic IP (opcional, mas recomendado)
+resource "aws_eip" "app_eip" {
+  instance = aws_instance.app_server.id
+  domain   = "vpc"
+
+  tags = {
+    Name = "quiosque-eip"
+  }
+
+  depends_on = [aws_internet_gateway.main]
 }
