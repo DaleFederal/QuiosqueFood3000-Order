@@ -108,7 +108,7 @@ services:
     container_name: postgres_container
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_PASSWORD=$${POSTGRES_PASSWORD}
       - POSTGRES_DB=QuiosqueFood3000
     volumes:
       - db-data:/var/lib/postgresql/data
