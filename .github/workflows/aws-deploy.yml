@@ -107,7 +107,9 @@ jobs:
   deploy:
     name: Deploy to EKS
     runs-on: ubuntu-latest
-    needs: build-and-push, terraform-apply # Depende do sucesso do job de build e push E do Terraform
+    needs:
+      - build-and-push
+      - terraform-apply # Depende do sucesso do job de build e push E do Terraform
 
     steps:
     - name: Checkout
