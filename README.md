@@ -11,7 +11,8 @@
 
 - Introdução
 - Documentação
-- Deploy na AWS com GitHub Actions
+- Provisionando a Infraestrutura com Terraform
+- Deploy na AWS EC2 com GitHub Actions
 - Colaboradores
 
 ## 🏆 Introdução
@@ -28,12 +29,13 @@ Como documentação do projeto foi feito um Event Storming entre os membros do g
 
 ## 🏗️ Provisionando a Infraestrutura com Terraform
 
-Antes de fazer o deploy da aplicação, você precisa provisionar a infraestrutura na AWS. Utilizamos o Terraform para automatizar a criação dos recursos necessários (VPC, ECR, EKS).
+Antes de fazer o deploy da aplicação, você precisa provisionar a infraestrutura na AWS. Utilizamos o Terraform para automatizar a criação dos recursos necessários (VPC, ECR, Instância EC2).
 
 ### Pré-requisitos
 
 - [Terraform](https://learn.hashicorp.com/tutorials/terraform/install-cli) instalado na sua máquina.
 - Credenciais da AWS configuradas no seu ambiente (via `aws configure` ou variáveis de ambiente).
+- Um par de chaves SSH (`.pem`) gerado na AWS e o nome da chave configurado na variável `key_pair_name` em `terraform/variables.tf`.
 
 ### Passo a passo
 
@@ -55,16 +57,17 @@ Antes de fazer o deploy da aplicação, você precisa provisionar a infraestrutu
    terraform apply
    ```
 
-   Após a execução, o Terraform irá criar o cluster EKS e o repositório ECR, e os nomes estarão alinhados com o que o pipeline do GitHub Actions espera.
+   Após a execução, o Terraform irá criar a instância EC2 e o repositório ECR. O IP público da instância EC2 será exibido como output.
 
-## 🚀 Deploy na AWS com GitHub Actions
+## 🚀 Deploy na AWS EC2 com GitHub Actions
 
-Siga os passos abaixo para configurar o deploy automatizado da sua aplicação na AWS utilizando o GitHub Actions.
+Siga os passos abaixo para configurar o deploy automatizado da sua aplicação na AWS EC2 utilizando o GitHub Actions.
 
 ### Pré-requisitos
 
-- Conta na AWS com permissões para criar e gerenciar recursos do ECR (Elastic Container Registry) e EKS (Elastic Kubernetes Service).
-- `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` gerados para um usuário IAM com as permissões necessárias para interagir com ECR e EKS.
+- Conta na AWS com permissões para criar e gerenciar recursos do ECR e EC2.
+- `AWS_ACCESS_KEY_ID` e `AWS_SECRET_ACCESS_KEY` gerados para um usuário IAM com as permissões necessárias.
+- `SSH_PRIVATE_KEY`: Um secret no GitHub contendo a chave privada SSH (o conteúdo do seu arquivo `.pem`) que corresponde ao `key_pair_name` usado no Terraform. Vá em `Settings > Secrets and variables > Actions` no seu repositório do GitHub e crie este secret.
 
 ### Passo a passo
 
@@ -74,16 +77,16 @@ Siga os passos abaixo para configurar o deploy automatizado da sua aplicação n
 
    - `AWS_ACCESS_KEY_ID`: Sua chave de acesso da AWS.
    - `AWS_SECRET_ACCESS_KEY`: Sua chave de acesso secreta da AWS.
+   - `SSH_PRIVATE_KEY`: O conteúdo da sua chave privada SSH (arquivo `.pem`).
 
 2️⃣ **Atualizar o arquivo de Workflow**
 
-   Abra o arquivo `.github/workflows/aws-deploy.yml` e atualize as variáveis de ambiente com os seus dados da AWS:
+   Abra o arquivo `.github/workflows/aws-deploy.yml` e verifique as variáveis de ambiente. Elas já devem estar alinhadas com as configurações do Terraform:
 
    ```yaml
    env:
-     AWS_REGION: SUA_REGIAO_AWS               # ex: us-east-1
-     ECR_REPOSITORY: SEU_ECR_REPOSITORY         # ex: quiosque-food-order
-     EKS_CLUSTER_NAME: SEU_EKS_CLUSTER_NAME     # ex: Quioscluster
+     AWS_REGION: us-east-1
+     ECR_REPOSITORY: quiosque-food-repository
      IMAGE_TAG: ${{ github.sha }}
    ```
 
@@ -95,8 +98,12 @@ O pipeline irá:
 
 - Fazer o build da imagem Docker da sua aplicação.
 - Enviar a imagem para o seu repositório no Amazon ECR.
-- Atualizar o arquivo de deployment do Kubernetes com a nova imagem.
-- Aplicar os manifestos do Kubernetes no seu cluster EKS, fazendo o deploy da aplicação e do banco de dados PostgreSQL.
+- Conectar-se à instância EC2 via SSH.
+- Copiar os arquivos `docker-compose.yml`, `Dockerfile` e `init.sql` para a instância EC2.
+- Fazer login no ECR na instância EC2.
+- Parar os contêineres existentes (se houver).
+- Fazer `docker pull` das imagens mais recentes.
+- Iniciar os contêineres da aplicação e do PostgreSQL usando `docker-compose up -d`.
 
 ## 👨‍💼 Colaboradores
 

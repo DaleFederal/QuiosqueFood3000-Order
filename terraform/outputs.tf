@@ -3,17 +3,7 @@ output "ecr_repository_url" {
   value       = aws_ecr_repository.app_ecr_repo.repository_url
 }
 
-output "eks_cluster_name" {
-  description = "Nome do cluster EKS"
-  value       = module.eks.cluster_name
-}
-
-output "eks_cluster_endpoint" {
-  description = "Endpoint do cluster EKS"
-  value       = module.eks.cluster_endpoint
-}
-
-output "eks_cluster_security_group_id" {
-  description = "ID do security group do cluster EKS"
-  value       = module.eks.cluster_security_group_id
+output "ec2_public_ip" {
+  description = "IP público da instância EC2"
+  value       = aws_instance.app_server.public_ip
 }
