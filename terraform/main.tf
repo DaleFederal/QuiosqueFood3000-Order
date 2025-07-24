@@ -2,9 +2,13 @@ provider "aws" {
   region = var.aws_region
 }
 
-# Pesquisa pelo Instance Profile pré-existente do AWS Academy
-data "aws_iam_instance_profile" "lab_profile" {
+data "aws_iam_role" "lab_role" {
   name = "LabRole"
+}
+
+resource "aws_iam_instance_profile" "lab_instance_profile" {
+  name = "LabRole-instance-profile" 
+  role = data.aws_iam_role.lab_role.name
 }
 
 # Bucket S3 para guardar artefatos de deploy
@@ -95,7 +99,7 @@ resource "aws_instance" "app_server" {
   ami           = "ami-0cbbe2c6a1bb2ad63" # AMI do Amazon Linux 2 para us-east-1 (verifique se é a correta para você)
   instance_type = "t2.micro"
   # Atribui o Instance Profile pré-existente do AWS Academy
-  iam_instance_profile = data.aws_iam_instance_profile.lab_profile.name
+  iam_instance_profile = aws_iam_instance_profile.lab_instance_profile.name
   security_groups = [aws_security_group.app_sg.name]
   user_data = local.user_data
 
