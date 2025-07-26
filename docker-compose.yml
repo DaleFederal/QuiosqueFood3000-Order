@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  # .NET Order API Application
+  order-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: quiosquefood3000-order-api
+    ports:
+      - "8081:8080" # Exposing on 8081 to avoid conflict with kitchen-api if running locally
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=QuiosqueFood3000OrderDB;Username=postgres;Password=mysecretpassword
+    depends_on:
+      - postgres-db
+    networks:
+      - quiosquefood3000-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres-db:
+    image: postgres:15
+    container_name: quiosquefood3000-postgres-db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=QuiosqueFood3000OrderDB
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=mysecretpassword
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - quiosquefood3000-network
+    restart: unless-stopped
+
+networks:
+  quiosquefood3000-network:
+    driver: bridge
+
+volumes:
+  postgres-data:
