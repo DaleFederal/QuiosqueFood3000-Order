@@ -1,5 +1,7 @@
 
 using Moq;
+using Moq.Protected;
+using System.Net.Http;
 using QuiosqueFood3000.Api.DTOs;
 using QuiosqueFood3000.Api.Services;
 using QuiosqueFood3000.Domain.Entities;
@@ -11,12 +13,33 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
     public class OrderServiceTests
     {
         private readonly Mock<IOrderRepository> _orderRepositoryMock;
+        private readonly Mock<IPaymentService> _paymentServiceMock;
+        private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
+        private readonly Mock<HttpMessageHandler> _httpMessageHandlerMock;
         private readonly OrderService _orderService;
 
         public OrderServiceTests()
         {
             _orderRepositoryMock = new Mock<IOrderRepository>();
-            _orderService = new OrderService(_orderRepositoryMock.Object);
+            _paymentServiceMock = new Mock<IPaymentService>();
+            _httpClientFactoryMock = new Mock<IHttpClientFactory>();
+            _httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+            _orderService = new OrderService(_orderRepositoryMock.Object, _paymentServiceMock.Object, _httpClientFactoryMock.Object);
+
+            _httpMessageHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.OK,
+                    Content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json")
+                });
+
+            _httpClientFactoryMock.Setup(x => x.CreateClient(It.IsAny<string>()))
+                .Returns(new HttpClient(_httpMessageHandlerMock.Object));
         }
 
         [Fact]
@@ -144,7 +167,7 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
         {
             // Arrange
             var orderId = 1;
-            var order = new QuiosqueFood3000.Domain.Entities.Order { Id = orderId, OrderSolicitation = new OrderSolicitation(), OrderStatus = OrderStatus.Emitted, PaymentStatus = PaymentStatus.Payed, TotalValue = 10 };
+            var order = new QuiosqueFood3000.Domain.Entities.Order { Id = orderId, OrderSolicitation = new OrderSolicitation(), OrderStatus = OrderStatus.Emitted, PaymentStatus = PaymentStatus.Payed, TotalValue = 10, OrderItemsList = new List<OrderItem>() };
             _orderRepositoryMock.Setup(x => x.GetOrderbyId(orderId)).ReturnsAsync(order);
 
             // Act

@@ -9,7 +9,7 @@ using QuiosqueFood3000.Infraestructure.Repositories.Interfaces;
 
 namespace QuiosqueFood3000.Api.Services;
 
-public class OrderService(IOrderRepository orderRepository, IPaymentService paymentService) : IOrderService
+public class OrderService(IOrderRepository orderRepository, IPaymentService paymentService, IHttpClientFactory httpClientFactory) : IOrderService
 {
     public async Task<OrderDto?> GetOrderById(int id)
     {
@@ -128,12 +128,12 @@ public class OrderService(IOrderRepository orderRepository, IPaymentService paym
         orderRepository.UpdateOrder(order);
 
         // Send order to kitchen
-        var httpClient = new HttpClient();
+        var httpClient = httpClientFactory.CreateClient();
         var kitchenUrl = "http://quiosquekitchen:5002/OrderSolicitation";
 
         var kitchenOrder = new KitchenOrderSolicitationDto
         {
-            Id = Guid.Parse(order.Id.ToString()),
+            Id = Guid.NewGuid(),
             Status = OrderStatus.Received.ToString(),
             GenerateDate = order.InitialDate,
             CustomerId = order.Customer != null ? Guid.Parse(order.Customer.Id.ToString()) : (Guid?)null,

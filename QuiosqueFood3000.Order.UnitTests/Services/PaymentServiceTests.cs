@@ -11,15 +11,15 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
 {
     public class PaymentServiceTests
     {
-        private readonly Mock<IOrderService> _orderServiceMock;
         private readonly Mock<IOrderRepository> _orderRepositoryMock;
+        private readonly Mock<IHttpClientFactory> _httpClientFactoryMock;
         private readonly PaymentService _paymentService;
 
         public PaymentServiceTests()
         {
-            _orderServiceMock = new Mock<IOrderService>();
             _orderRepositoryMock = new Mock<IOrderRepository>();
-            _paymentService = new PaymentService(_orderServiceMock.Object, _orderRepositoryMock.Object);
+            _httpClientFactoryMock = new Mock<IHttpClientFactory>();
+            _paymentService = new PaymentService(_orderRepositoryMock.Object, _httpClientFactoryMock.Object);
         }
 
         [Fact]
@@ -69,7 +69,7 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
 
             // Assert
             _orderRepositoryMock.Verify(x => x.UpdateOrder(It.Is<QuiosqueFood3000.Domain.Entities.Order>(o => o.PaymentStatus == PaymentStatus.Payed)), Times.Once);
-            _orderServiceMock.Verify(x => x.SendOrderToKitchenQueue(order.Id), Times.Once);
+            
         }
 
         [Fact]
@@ -85,7 +85,7 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
 
             // Assert
             _orderRepositoryMock.Verify(x => x.UpdateOrder(It.Is<QuiosqueFood3000.Domain.Entities.Order>(o => o.PaymentStatus == PaymentStatus.NotPayed)), Times.Once);
-            _orderServiceMock.Verify(x => x.SendOrderToKitchenQueue(It.IsAny<int>()), Times.Never);
+            
         }
     }
 }
