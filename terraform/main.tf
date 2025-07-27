@@ -269,7 +269,7 @@ resource "aws_lb_listener" "app" {
 
 # ECR Repository
 resource "aws_ecr_repository" "app" {
-  name                 = "quiosquefood3000-kitchen"
+  name                 = "quiosquefood3000-order"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
