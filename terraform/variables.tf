@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "name of the project"
   type        = string
-  default     = "QuiosqueFood3000Order"
+  default     = "QuiosqueFood3000Kitchen"
 }
 
 variable "environment" {
@@ -19,25 +19,7 @@ variable "environment" {
 variable "vpc_cidr" {
   description = "CIDR block for VPC"
   type        = string
-  default     = "10.1.0.0/16"
-}
-
-variable "db_name" {
-  description = "Database name"
-  type        = string
-  default     = "QuiosqueFood3000OrderDB"
-}
-
-variable "db_username" {
-  description = "Database username"
-  type        = string
-  default     = "postgres"
-}
-
-variable "db_password" {
-  description = "Database password"
-  type        = string
-  sensitive   = true
+  default     = "10.0.0.0/16"
 }
 
 variable "container_cpu" {
