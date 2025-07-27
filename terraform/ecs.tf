@@ -10,7 +10,7 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([
     {
-      name      = "kitchen-api"
+      name      = "order-api"
       image     = "${aws_ecr_repository.app.repository_url}:latest"
       essential = true
 
@@ -76,7 +76,7 @@ resource "aws_ecs_service" "main" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
-    container_name   = "kitchen-api"
+    container_name   = "order-api"
     container_port   = var.container_port
   }
 
