@@ -2,31 +2,34 @@ using Microsoft.AspNetCore.Mvc;
 using QuiosqueFood3000.Api.DTOs;
 using QuiosqueFood3000.Api.Services;
 using QuiosqueFood3000.Api.Services.Interfaces;
+using QuiosqueFood3000.Domain.Entities.Enums;
 
-namespace QuiosqueFood3000.Controllers;
-
-[Route("api/[controller]/")]
-[ApiController]
-public class WebhookController(IPaymentService paymentService) : ControllerBase
+namespace QuiosqueFood3000.Controllers
 {
-    
-    /// <summary>
-    /// Webhook para processar o pagamento
-    /// </summary>
-    /// <param name="paymentDto"></param>
-    /// <returns></returns>
-    [HttpPost("PaymentWebhook/")]
-    public async Task<IActionResult> PaymentWebhook(PaymentDto paymentDto)
+    [Route("api/[controller]")]
+    [ApiController]
+    public class WebhookController : ControllerBase
     {
-        try
+        private readonly IPaymentService _paymentService;
+        private readonly IOrderService _orderService;
+
+        public WebhookController(IPaymentService paymentService, IOrderService orderService)
         {
-            await paymentService.ProcessPayment(paymentDto);
+            _paymentService = paymentService;
+            _orderService = orderService;
         }
-        catch (Exception ex)
+
+        [HttpPost("payment-status")]
+        public async Task<IActionResult> UpdatePaymentStatus([FromBody] PaymentDto paymentDto)
         {
-            return BadRequest(ex.Message);
+            await _paymentService.ProcessPayment(paymentDto);
+
+            if(paymentDto.PaymentStatus == PaymentStatus.Payed)
+            {
+                await _orderService.SendOrderToKitchenQueue(paymentDto.OrderId);
+            }
+
+            return Ok();
         }
-        
-        return Ok();
     }
 }

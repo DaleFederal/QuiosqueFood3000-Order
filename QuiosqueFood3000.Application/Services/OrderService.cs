@@ -1,4 +1,6 @@
-﻿using QuiosqueFood3000.Api.DTOs;
+﻿using System.Net.Http;
+using System.Text.Json;
+using QuiosqueFood3000.Api.DTOs;
 using QuiosqueFood3000.Api.Services.Interfaces;
 using QuiosqueFood3000.Api.Validators;
 using QuiosqueFood3000.Domain.Entities;
@@ -7,7 +9,7 @@ using QuiosqueFood3000.Infraestructure.Repositories.Interfaces;
 
 namespace QuiosqueFood3000.Api.Services;
 
-public class OrderService(IOrderRepository orderRepository) : IOrderService
+public class OrderService(IOrderRepository orderRepository, IPaymentService paymentService) : IOrderService
 {
     public async Task<OrderDto?> GetOrderById(int id)
     {
@@ -125,6 +127,35 @@ public class OrderService(IOrderRepository orderRepository) : IOrderService
 
         orderRepository.UpdateOrder(order);
 
+        // Send order to kitchen
+        var httpClient = new HttpClient();
+        var kitchenUrl = "http://quiosquekitchen:5002/OrderSolicitation";
+
+        var kitchenOrder = new KitchenOrderSolicitationDto
+        {
+            Id = Guid.Parse(order.Id.ToString()),
+            Status = OrderStatus.Received.ToString(),
+            GenerateDate = order.InitialDate,
+            CustomerId = order.Customer != null ? Guid.Parse(order.Customer.Id.ToString()) : (Guid?)null,
+            AnonymousIdentification = order.AnonymousIdentification.ToString(),
+            Products = order.OrderItemsList.Select(item => new KitchenProductDto
+            {
+                Id = Guid.NewGuid(),
+                Name = item.Product.Name,
+                Description = item.Observations
+            }).ToList()
+        };
+
+        var json = System.Text.Json.JsonSerializer.Serialize(kitchenOrder);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+
+        var response = await httpClient.PostAsync(kitchenUrl, content);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new InvalidOperationException($"Failed to send order to kitchen: {response.ReasonPhrase}");
+        }
+
         return new OrderDto()
         {
             Id = order.Id.ToString(),
@@ -165,6 +196,7 @@ public class OrderService(IOrderRepository orderRepository) : IOrderService
         order = orderRepository.RegisterOrder(order);
 
         orderDto.Id = order.Id.ToString();
+        paymentService.RequestPayment(orderDto);
         return orderDto;
     }
 

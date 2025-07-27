@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using QuiosqueFood3000.Api.Services;
 using QuiosqueFood3000.Api.Services.Interfaces;
 using QuiosqueFood3000.Application.Services;
+using System.Net.Http;
 
 namespace QuiosqueFood3000.Api.Infra;
 
@@ -16,6 +17,8 @@ public static class DependencyRegister
         services.AddScoped<IProductService, ProductService>();
         
         services.AddScoped<IPaymentService, PaymentService>();
+
+        services.AddHttpClient();
 
         return services;
     }
