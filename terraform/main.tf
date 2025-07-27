@@ -14,7 +14,6 @@ terraform {
     key            = "terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
-    dynamodb_table = "quiosquefood3000-terraform-locks"
   }
 }
 
@@ -335,21 +334,5 @@ resource "aws_cloudwatch_log_group" "app" {
 
   tags = {
     Name = "${var.project_name}-${var.environment}-logs"
-  }
-}
-
-# DynamoDB Table
-resource "aws_dynamodb_table" "order_solicitations" {
-  name         = var.dynamodb_table_name
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "Id"
-
-  attribute {
-    name = "Id"
-    type = "S"
-  }
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-order-solicitations"
   }
 }
