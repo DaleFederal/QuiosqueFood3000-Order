@@ -78,7 +78,6 @@ jobs:
     # Generates an execution plan for Terraform
     - name: Terraform Plan
       id: plan
-      if: github.event_name == 'pull_request' || (github.event_name == 'workflow_dispatch' && (github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply'))
       run: |
         terraform plan -no-color -input=false -out=tfplan
       continue-on-error: true
@@ -99,7 +98,7 @@ jobs:
 
           <details><summary>Show Plan</summary>
 
-          \`\`\`\n
+          \`\`\`
           ${process.env.PLAN}
           \`\`\`
 
@@ -122,7 +121,7 @@ jobs:
     # On push to "main" or manual workflow dispatch, build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
       if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
-      run: terraform apply -auto-approve -input=false tfplan
+      run: terraform apply -auto-approve -input=false
 
     # Terraform Destroy (manual trigger only)
     - name: Terraform Destroy
@@ -131,7 +130,7 @@ jobs:
 
     # Upload Terraform Plan as artifact
     - name: Upload Terraform Plan
-      if: steps.plan.outcome == 'success' && (github.event_name == 'pull_request' || github.event.inputs.action == 'plan')
+      if: steps.plan.outcome == 'success'
       uses: actions/upload-artifact@v4
       with:
         name: terraform-plan
