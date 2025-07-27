@@ -1,3 +1,4 @@
+# Configure the AWS Provider
 terraform {
   required_version = ">= 1.0"
   required_providers {
@@ -7,9 +8,10 @@ terraform {
     }
   }
 
+  # Backend configuration for state management
   backend "s3" {
     bucket         = "quiosquefood3000-terraform-state"
-    key            = "order-service/terraform.tfstate"
+    key            = "terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
     dynamodb_table = "quiosquefood3000-terraform-locks"
@@ -34,6 +36,11 @@ data "aws_availability_zones" "available" {
 }
 
 data "aws_caller_identity" "current" {}
+
+# Use pre-existing LabRole from AWS Academy
+data "aws_iam_role" "lab_role" {
+  name = "LabRole"
+}
 
 # VPC
 resource "aws_vpc" "main" {
@@ -192,8 +199,8 @@ resource "aws_security_group" "ecs_tasks" {
 
   ingress {
     description     = "HTTP from ALB"
-    from_port       = 8080
-    to_port         = 8080
+    from_port       = var.container_port
+    to_port         = var.container_port
     protocol        = "tcp"
     security_groups = [aws_security_group.alb.id]
   }
@@ -210,33 +217,9 @@ resource "aws_security_group" "ecs_tasks" {
   }
 }
 
-resource "aws_security_group" "rds" {
-  name_prefix = "${var.project_name}-${var.environment}-rds-"
-  vpc_id      = aws_vpc.main.id
-
-  ingress {
-    description     = "PostgreSQL from ECS"
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ecs_tasks.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-rds-sg"
-  }
-}
-
 # Application Load Balancer
 resource "aws_lb" "main" {
-  name               = "QF3O-${substr(var.environment, 0, 4)}-alb"
+  name               = "QF3K-${substr(var.environment, 0, 4)}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
@@ -245,13 +228,13 @@ resource "aws_lb" "main" {
   enable_deletion_protection = false
 
   tags = {
-    Name = "QF3O-${substr(var.environment, 0, 4)}-alb"
+    Name = "QF3K-${substr(var.environment, 0, 4)}-alb"
   }
 }
 
 resource "aws_lb_target_group" "app" {
-  name        = "QF3O-${substr(var.environment, 0, 4)}-tg"
-  port        = 8080
+  name        = "QF3K-${substr(var.environment, 0, 4)}-tg"
+  port        = var.container_port
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
@@ -286,7 +269,7 @@ resource "aws_lb_listener" "app" {
 
 # ECR Repository
 resource "aws_ecr_repository" "app" {
-  name                 = "quiosquefood3000-order"
+  name                 = "quiosquefood3000-kitchen"
   image_tag_mutability = "MUTABLE"
 
   image_scanning_configuration {
@@ -355,36 +338,18 @@ resource "aws_cloudwatch_log_group" "app" {
   }
 }
 
-# Use pre-existing LabRole from AWS Academy
-data "aws_iam_role" "lab_role" {
-  name = "LabRole"
-}
+# DynamoDB Table
+resource "aws_dynamodb_table" "order_solicitations" {
+  name         = var.dynamodb_table_name
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "Id"
 
-# RDS Database
-resource "aws_db_subnet_group" "main" {
-  name       = "${var.project_name}-${var.environment}-sng"
-  subnet_ids = aws_subnet.private[*].id
-
-  tags = {
-    Name = "${var.project_name}-${var.environment}-db-subnet-group"
+  attribute {
+    name = "Id"
+    type = "S"
   }
-}
-
-resource "aws_db_instance" "main" {
-  identifier             = "${lower(var.project_name)}-${var.environment}-db"
-  engine                 = "postgres"
-  engine_version         = "15"
-  instance_class         = "db.t3.micro"
-  allocated_storage      = 20
-  db_name                = var.db_name
-  username               = var.db_username
-  password               = var.db_password
-  db_subnet_group_name   = aws_db_subnet_group.main.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  skip_final_snapshot    = true
-  publicly_accessible    = false
 
   tags = {
-    Name = "${var.project_name}-${var.environment}-db-instance"
+    Name = "${var.project_name}-${var.environment}-order-solicitations"
   }
 }

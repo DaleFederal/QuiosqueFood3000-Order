@@ -10,13 +10,14 @@ resource "aws_ecs_task_definition" "app" {
 
   container_definitions = jsonencode([
     {
-      name      = "order-api"
+      name      = "kitchen-api"
       image     = "${aws_ecr_repository.app.repository_url}:latest"
       essential = true
 
       portMappings = [
         {
           containerPort = var.container_port
+          hostPort      = var.container_port
           protocol      = "tcp"
         }
       ]
@@ -29,10 +30,6 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "ASPNETCORE_URLS"
           value = "http://+:${var.container_port}"
-        },
-        {
-          name = "ConnectionStrings__DefaultConnection",
-          value = "Host=${aws_db_instance.main.address};Port=${aws_db_instance.main.port};Database=${var.db_name};Username=${var.db_username};Password=${var.db_password}"
         }
       ]
 
@@ -79,7 +76,7 @@ resource "aws_ecs_service" "main" {
 
   load_balancer {
     target_group_arn = aws_lb_target_group.app.arn
-    container_name   = "order-api"
+    container_name   = "kitchen-api"
     container_port   = var.container_port
   }
 
