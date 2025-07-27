@@ -63,16 +63,6 @@ output "cloudwatch_log_group_name" {
   value       = aws_cloudwatch_log_group.app.name
 }
 
-output "db_endpoint" {
-  description = "Endpoint of the RDS instance"
-  value       = aws_db_instance.main.endpoint
-}
-
-output "db_name" {
-  description = "Name of the RDS database"
-  value       = aws_db_instance.main.db_name
-}
-
 output "alb_target_group_arn" {
   description = "ARN of the ALB target group"
   value       = aws_lb_target_group.app.arn
