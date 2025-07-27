@@ -8,16 +8,6 @@ on:
     paths:
       - 'terraform/**'
   workflow_dispatch:
-    inputs:
-      action:
-        description: 'Action to perform'
-        required: true
-        default: 'plan'
-        type: choice
-        options:
-          - plan
-          - apply
-          - destroy
 
 env:
   TF_VERSION: '1.6.0'
@@ -61,18 +51,14 @@ jobs:
 
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
-      id: init
       run: terraform init
 
     # Checks that all Terraform configuration files adhere to a canonical format
     - name: Terraform Format
-      id: fmt
       run: terraform fmt -check
-      continue-on-error: true
 
     # Validates the configuration files in a directory, referring only to the configuration and not accessing any remote services
     - name: Terraform Validate
-      id: validate
       run: terraform validate
 
     # Generates an execution plan for Terraform
@@ -99,7 +85,7 @@ jobs:
 
           <details><summary>Show Plan</summary>
 
-          \`\`\`
+          \`\`\`\n
           ${process.env.PLAN}
           \`\`\`
 
@@ -119,9 +105,9 @@ jobs:
       if: steps.plan.outcome == 'failure'
       run: exit 1
 
-    # On push to "main" or manual workflow dispatch, build or change infrastructure according to Terraform configuration files
+    # On push to "main", build or change infrastructure according to Terraform configuration files
     - name: Terraform Apply
-      if: (github.ref == 'refs/heads/main' && github.event_name == 'push') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
+      if: (github.event_name == 'pull_request') || (github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply')
       run: terraform apply -auto-approve -input=false
 
     # Terraform Destroy (manual trigger only)
