@@ -8,7 +8,7 @@ pool:
 
 variables:
   acrName: "quiosquefoodacr"
-  imageName: "quiosquefood" 
+  imageName: "quiosquefood3000-order" 
   aksCluster: "QuiosqueCluster" 
   resourceGroup: "QuiosqueFood-RG" 
   namespace: "quiosque-namespace" 
