@@ -10,7 +10,7 @@ terraform {
 
   # Backend configuration for state management
   backend "s3" {
-    bucket         = "quiosque-food-order"
+    bucket         = "quiosquefood3000-terraform-state"
     key            = "terraform.tfstate"
     region         = "us-east-1"
     encrypt        = true
