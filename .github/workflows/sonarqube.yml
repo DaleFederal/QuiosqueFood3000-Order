@@ -44,6 +44,9 @@ jobs:
         shell: powershell
         run: |
           .\.sonar\scanner\dotnet-sonarscanner begin /k:"DaleFederal_QuiosqueFood3000-Order" /o:"dalefederal" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.opencover.reportsPaths="**/coverage.opencover.xml"
-          dotnet build
-          dotnet test --no-build --collect:"XPlat Code Coverage" --results-directory "TestResults"
+          dotnet build QuiosqueFood3000.Order.sln
+          dotnet test QuiosqueFood3000.Order.sln --no-build --collect:"XPlat Code Coverage" --results-directory "TestResults"
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+      - name: List TestResults directory
+        run: ls -R TestResults
+        shell: bash
