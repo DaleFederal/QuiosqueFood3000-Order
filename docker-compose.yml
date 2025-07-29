@@ -8,7 +8,7 @@ services:
       dockerfile: Dockerfile
     container_name: quiosquefood3000-order-api
     ports:
-      - "8081:8080" # Exposing on 8081 to avoid conflict with kitchen-api if running locally
+      - "8081:8080"
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres-db;Port=5432;Database=QuiosqueFood3000OrderDB;Username=postgres;Password=mysecretpassword
