@@ -1,18 +1,43 @@
 name: 'Terraform Infrastructure'
 
 on:
-  push:
-    branches: [ main ]
+  # Executa quando um PR é aberto/atualizado (apenas plan)
   pull_request:
-    branches: [ main ]
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+    types: [opened, synchronize, reopened]
+  
+  # Executa quando um PR é mergeado na main (plan + apply)
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+  
+  # Execução manual para casos especiais
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform'
+        required: false
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
 
 env:
   TF_VERSION: '1.6.0'
   AWS_REGION: 'us-east-1'
+  TF_IN_AUTOMATION: true
 
 permissions:
   contents: read
   pull-requests: write
+  id-token: write  # This is required for requesting the JWT
 
 jobs:
   terraform:
@@ -20,24 +45,21 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
 
-    # Use the Bash shell regardless whether the GitHub Actions runner is ubuntu-latest, macos-latest, or windows-latest
     defaults:
       run:
         shell: bash
         working-directory: ./terraform
 
     steps:
-    # Checkout the repository to the GitHub Actions runner
     - name: Checkout
       uses: actions/checkout@v4
 
-    # Install the latest version of Terraform CLI
     - name: Setup Terraform
       uses: hashicorp/setup-terraform@v3
       with:
         terraform_version: ${{ env.TF_VERSION }}
+        terraform_wrapper: false  # Importante para evitar problemas com outputs
 
-    # Configure AWS credentials
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v4
       with:
@@ -46,40 +68,68 @@ jobs:
         aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
         aws-region: ${{ env.AWS_REGION }}
 
-    # Initialize a new or existing Terraform working directory
     - name: Terraform Init
       id: init
-      run: terraform init
+      run: |
+        echo "🔧 Initializing Terraform..."
+        terraform init -no-color
+      continue-on-error: false
 
-    # Checks that all Terraform configuration files adhere to a canonical format
-    - name: Terraform Format
+    - name: Terraform Format Check
       id: fmt
-      run: terraform fmt -check
+      run: |
+        echo "🎨 Checking Terraform format..."
+        terraform fmt -check -diff -no-color
       continue-on-error: true
 
-    # Validates the configuration files in a directory
     - name: Terraform Validate
       id: validate
-      run: terraform validate
+      run: |
+        echo "✅ Validating Terraform configuration..."
+        terraform validate -no-color
 
-    # Generates an execution plan for Terraform
     - name: Terraform Plan
       id: plan
       run: |
-        terraform plan -input=false -out=tfplan -var="db_password=${{ secrets.DB_PASSWORD }}"
-      continue-on-error: true
+        echo "📋 Planning Terraform changes..."
+        terraform plan -no-color -input=false -out=tfplan
       env:
         TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+      continue-on-error: false
+
+    - name: Show Terraform Plan
+      id: show
+      run: |
+        echo "📖 Showing Terraform plan..."
+        terraform show -no-color tfplan
+      continue-on-error: true
 
     # Update Pull Request with Terraform Plan
     - name: Update Pull Request
       uses: actions/github-script@v7
       if: github.event_name == 'pull_request'
       env:
-        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        PLAN: ${{ steps.show.outputs.stdout }}
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         script: |
+          // Delete previous comments
+          const comments = await github.rest.issues.listComments({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+          });
+          
+          for (const comment of comments.data) {
+            if (comment.body.includes('Terraform Format and Style')) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: comment.id,
+              });
+            }
+          }
+
           const output = `#### Terraform Format and Style 🖌 \`${{ steps.fmt.outcome }}\`
           #### Terraform Initialization ⚙️ \`${{ steps.init.outcome }}\`
           #### Terraform Validation 🤖 \`${{ steps.validate.outcome }}\`
@@ -93,41 +143,54 @@ jobs:
 
           </details>
 
-          *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
 
           github.rest.issues.createComment({
             issue_number: context.issue.number,
             owner: context.repo.owner,
             repo: context.repo.repo,
             body: output
-          })
+          });
 
-    # Terraform Plan Status
     - name: Terraform Plan Status
       if: steps.plan.outcome == 'failure'
-      run: exit 1
+      run: |
+        echo "❌ Terraform Plan failed!"
+        exit 1
 
-    # On push to "main", build or change infrastructure according to Terraform configuration files
+    # Apply only when code is pushed to main (after PR merge)
     - name: Terraform Apply
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        echo "🚀 Applying Terraform changes to production..."
-        terraform apply -auto-approve -input=false tfplan
+        echo "🚀 PR was merged to main - Applying Terraform changes automatically..."
+        echo "Merged by: ${{ github.actor }}"
+        echo "Commit: ${{ github.sha }}"
+        terraform apply -auto-approve -no-color tfplan
       env:
         TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
-    # Terraform Destroy (manual trigger only)
+    # Manual destroy option
     - name: Terraform Destroy
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'destroy'
-      run: terraform destroy -auto-approve -input=false -var="db_password=${{ secrets.DB_PASSWORD }}"
+      run: |
+        echo "💥 Destroying Terraform resources..."
+        terraform destroy -auto-approve -no-color -input=false
       env:
         TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
 
-    # Upload Terraform Plan as artifact
+    # Manual apply option
+    - name: Manual Terraform Apply
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.action == 'apply'
+      run: |
+        echo "🚀 Manually applying Terraform changes..."
+        terraform apply -auto-approve -no-color -input=false
+      env:
+        TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
+
     - name: Upload Terraform Plan
       if: steps.plan.outcome == 'success'
       uses: actions/upload-artifact@v4
       with:
-        name: terraform-plan
+        name: terraform-plan-${{ github.sha }}
         path: terraform/tfplan
         retention-days: 30
