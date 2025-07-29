@@ -23,10 +23,10 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: 17
-          distribution: 'zulu' # Alternative distribution options are available.
+          distribution: 'zulu'
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          fetch-depth: 0
       - name: Cache SonarQube Cloud packages
         uses: actions/cache@v4
         with:
@@ -83,6 +83,9 @@ jobs:
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         IMAGE_TAG: ${{ github.sha }}
+        # Suprimir avisos do AWS SDK durante o build
+        NODE_NO_WARNINGS: 1
+        AWS_NODEJS_CONNECTION_REUSE_ENABLED: 1
       run: |
         # Build a docker container and push it to ECR
         docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
@@ -98,7 +101,7 @@ jobs:
         image: ${{ steps.build-image.outputs.image }}
 
     - name: Deploy Amazon ECS task definition
-      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v2
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
