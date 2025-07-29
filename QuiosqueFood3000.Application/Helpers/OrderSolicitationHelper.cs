@@ -34,6 +34,6 @@ namespace QuiosqueFood3000.Api.Helpers
 
             return order;
         }
-        public static bool ValidateOrderSolicitationDataForConfirmation(OrderSolicitation orderSolicitation) => !(orderSolicitation == null || orderSolicitation.OrderItemsList?.Count < 1);
+        public static bool ValidateOrderSolicitationDataForConfirmation(OrderSolicitation orderSolicitation) => !(orderSolicitation == null || orderSolicitation.OrderItemsList == null || orderSolicitation.OrderItemsList.Count < 1);
     }
 }

@@ -13,10 +13,10 @@ public class OrderSolicitationHelperTests
         var helper = new OrderSolicitationHelper();
         var orderSolicitation = new OrderSolicitation
         {
-            OrderItemsList = new List<OrderItem> { new OrderItem() },
+            OrderItemsList = new List<OrderItem> { new OrderItem() { Product = new Product() } },
             TotalValue = 100,
             TypeOfIdentification = TypeOfIdentification.Anonymous,
-            AnonymousIdentification = "test"
+            AnonymousIdentification = Guid.NewGuid()
         };
 
         // Act
@@ -46,7 +46,7 @@ public class OrderSolicitationHelperTests
         // Arrange
         var orderSolicitation = new OrderSolicitation
         {
-            OrderItemsList = new List<OrderItem> { new OrderItem() }
+            OrderItemsList = new List<OrderItem> { new OrderItem() { Product = new Product() } }
         };
 
         // Act

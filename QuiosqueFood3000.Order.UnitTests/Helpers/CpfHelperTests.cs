@@ -5,7 +5,7 @@ namespace QuiosqueFood3000.Order.UnitTests.Helpers;
 public class CpfHelperTests
 {
     [Theory]
-    [InlineData("12345678901", true)]
+    [InlineData("12345678901", false)]
     [InlineData("11111111111", false)]
     [InlineData(null, false)]
     [InlineData("", false)]

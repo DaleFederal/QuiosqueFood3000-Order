@@ -20,7 +20,7 @@
 
             cpf = RemoveSpecialCaracters(cpf);
 
-            if (cpf.Length != 11)
+            if (cpf.Length != 11 || new string(cpf[0], 11) == cpf)
             {
                 return false;
             }
