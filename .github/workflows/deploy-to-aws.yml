@@ -9,7 +9,7 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: quiosquefood3000-order
-  ECS_SERVICE: quiosquefood3000oder-production-service
+  ECS_SERVICE: quiosquefood3000order-production-service
   ECS_CLUSTER: quiosquefood3000order-production-cluster
   ECS_TASK_DEFINITION: quiosquefood3000order-production-task
   CONTAINER_NAME: order-api

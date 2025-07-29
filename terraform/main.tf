@@ -93,7 +93,7 @@ resource "aws_subnet" "private" {
 
 # NAT Gateway - ALTERADO: Usando apenas 1 para economizar EIPs
 resource "aws_eip" "nat" {
-  count = 1  # Reduzido de 2 para 1
+  count = 2
 
   domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
@@ -104,7 +104,7 @@ resource "aws_eip" "nat" {
 }
 
 resource "aws_nat_gateway" "main" {
-  count = 1  # Reduzido de 2 para 1
+  count = 2 
 
   allocation_id = aws_eip.nat[0].id
   subnet_id     = aws_subnet.public[0].id  # Usando apenas a primeira subnet pública

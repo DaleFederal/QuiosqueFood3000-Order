@@ -41,5 +41,10 @@ ENV ASPNETCORE_ENVIRONMENT=Production
 RUN adduser --disabled-password --gecos '' appuser && chown -R appuser /app
 USER appuser
 
+# Install curl for health checks
+USER root
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+USER appuser
+
 # Set the entry point
 ENTRYPOINT ["dotnet", "QuiosqueFood3000.Api.dll"]
