@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "project_name" {
   description = "name of the project"
   type        = string
-  default     = "QuiosqueFood3000Order"
+  default     = "quiosquefood3000order"
 }
 
 variable "environment" {
