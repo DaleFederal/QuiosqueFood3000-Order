@@ -1,11 +1,13 @@
-
 using Moq;
+using Moq.Protected;
 using QuiosqueFood3000.Api.DTOs;
 using QuiosqueFood3000.Api.Services;
-using QuiosqueFood3000.Api.Services.Interfaces;
 using QuiosqueFood3000.Domain.Entities;
 using QuiosqueFood3000.Domain.Entities.Enums;
 using QuiosqueFood3000.Infraestructure.Repositories.Interfaces;
+using System.Net.Http;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QuiosqueFood3000.Order.UnitTests.Services
 {
@@ -86,6 +88,33 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
             // Assert
             _orderRepositoryMock.Verify(x => x.UpdateOrder(It.Is<QuiosqueFood3000.Domain.Entities.Order>(o => o.PaymentStatus == PaymentStatus.NotPayed)), Times.Once);
             
+        }
+
+        [Fact]
+        public async Task RequestPayment_WhenHttpClientFails_ThrowsApplicationException()
+        {
+            // Arrange
+            var orderDto = new OrderDto { Id = "1", TotalValue = 10 };
+
+            var httpMessageHandlerMock = new Mock<HttpMessageHandler>();
+            httpMessageHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.InternalServerError,
+                    ReasonPhrase = "Internal Server Error"
+                });
+
+            var httpClient = new HttpClient(httpMessageHandlerMock.Object);
+            _httpClientFactoryMock.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(httpClient);
+
+            // Act & Assert
+            var exception = await Assert.ThrowsAsync<ApplicationException>(() => _paymentService.RequestPayment(orderDto));
+            Assert.Equal("Erro ao solicitar pagamento: Internal Server Error", exception.Message);
         }
     }
 }

@@ -289,5 +289,73 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
             // Act & Assert
             await Assert.ThrowsAsync<NullReferenceException>(() => _orderService.ChangeOrderStatus(orderId, OrderStatus.InProgress));
         }
+
+        [Fact]
+        public async Task GetOrders_WhenOrdersExistButListIsEmpty_ReturnsEmptyList()
+        {
+            // Arrange
+            _orderRepositoryMock.Setup(x => x.GetOrders()).ReturnsAsync(new List<QuiosqueFood3000.Domain.Entities.Order>());
+
+            // Act
+            var result = await _orderService.GetOrders();
+
+            // Assert
+            Assert.NotNull(result);
+            Assert.Empty(result);
+        }
+
+        [Fact]
+        public void UpdateOrder_WhenTypeOfIdentificationIsNull_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var orderDto = new OrderDto { Id = "1", OrderSolicitation = new OrderSolicitation(), OrderStatus = OrderStatus.Emitted, TotalValue = 10, InitialDate = DateTime.Now, PaymentStatus = PaymentStatus.Payed };
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => _orderService.UpdateOrder(orderDto));
+        }
+
+        [Fact]
+        public async Task SendOrderToKitchenQueue_WhenOrderDoesNotExist_ThrowsException()
+        {
+            // Arrange
+            var orderId = 1;
+            _orderRepositoryMock.Setup(x => x.GetOrderbyId(orderId)).ReturnsAsync((QuiosqueFood3000.Domain.Entities.Order)null);
+
+            // Act & Assert
+            await Assert.ThrowsAsync<NullReferenceException>(() => _orderService.SendOrderToKitchenQueue(orderId));
+        }
+
+        [Fact]
+        public async Task SendOrderToKitchenQueue_WhenHttpClientFails_ThrowsInvalidOperationException()
+        {
+            // Arrange
+            var orderId = 1;
+            var order = new QuiosqueFood3000.Domain.Entities.Order { Id = orderId, OrderSolicitation = new OrderSolicitation(), OrderStatus = OrderStatus.Emitted, PaymentStatus = PaymentStatus.Payed, TotalValue = 10, OrderItemsList = new List<OrderItem>() };
+            _orderRepositoryMock.Setup(x => x.GetOrderbyId(orderId)).ReturnsAsync(order);
+
+            _httpMessageHandlerMock.Protected()
+                .Setup<Task<HttpResponseMessage>>(
+                    "SendAsync",
+                    ItExpr.IsAny<HttpRequestMessage>(),
+                    ItExpr.IsAny<CancellationToken>()
+                )
+                .ReturnsAsync(new HttpResponseMessage
+                {
+                    StatusCode = System.Net.HttpStatusCode.InternalServerError,
+                });
+
+            // Act & Assert
+            await Assert.ThrowsAsync<InvalidOperationException>(() => _orderService.SendOrderToKitchenQueue(orderId));
+        }
+
+        [Fact]
+        public void RegisterOrder_WhenTypeOfIdentificationIsNull_ThrowsArgumentNullException()
+        {
+            // Arrange
+            var orderDto = new OrderDto { OrderSolicitation = new OrderSolicitation(), TotalValue = 10, OrderItemsList = new List<OrderItem> { new OrderItem { Product = new Product() } } };
+
+            // Act & Assert
+            Assert.Throws<ArgumentNullException>(() => _orderService.RegisterOrder(orderDto));
+        }
     }
 }

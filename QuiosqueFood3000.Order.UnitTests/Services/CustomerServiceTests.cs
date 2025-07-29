@@ -147,6 +147,6 @@ namespace QuiosqueFood3000.Order.UnitTests.Services
 
             // Act & Assert
             Assert.Throws<InvalidDataException>(() => _customerService.UpdateCustomer(customerDto));
-        }
+        }       
     }
 }
