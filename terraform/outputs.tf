@@ -77,3 +77,18 @@ output "ecs_security_group_id" {
   description = "ID of the ECS tasks security group"
   value       = aws_security_group.ecs_tasks.id
 }
+
+output "rds_endpoint" {
+  description = "PostgreSQL RDS endpoint"
+  value       = aws_db_instance.postgres.endpoint
+}
+
+output "rds_port" {
+  description = "PostgreSQL RDS port"
+  value       = aws_db_instance.postgres.port
+}
+
+output "database_name" {
+  description = "Name of the database"
+  value       = aws_db_instance.postgres.db_name
+}
