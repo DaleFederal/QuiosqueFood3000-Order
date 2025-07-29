@@ -1,13 +1,14 @@
-name: SonarQube
+name: SonarQube Analysis
 on:
   push:
     branches:
       - main
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
-  build:
-    name: Build and analyze
+  sonarqube:
+    name: SonarQube Analysis
     runs-on: windows-latest
     steps:
       - name: Set up JDK 17
@@ -15,15 +16,19 @@ jobs:
         with:
           java-version: 17
           distribution: 'zulu'
-      - uses: actions/checkout@v4
+          
+      - name: Checkout code
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          
       - name: Cache SonarQube Cloud packages
         uses: actions/cache@v4
         with:
           path: ~\sonar\cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
+          
       - name: Cache SonarQube Cloud scanner
         id: cache-sonar-scanner
         uses: actions/cache@v4
@@ -31,51 +36,84 @@ jobs:
           path: .\.sonar\scanner
           key: ${{ runner.os }}-sonar-scanner
           restore-keys: ${{ runner.os }}-sonar-scanner
+          
       - name: Install SonarQube Cloud scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
         shell: powershell
         run: |
-          New-Item -Path .\.sonar\scanner -ItemType Directory
+          New-Item -Path .\.sonar\scanner -ItemType Directory -Force
           dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+          
       - name: Build and analyze
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         shell: powershell
         run: |
-          # Início da análise do SonarQube com configurações de cobertura
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"DaleFederal_QuiosqueFood3000-Order" /o:"dalefederal" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" /d:sonar.coverage.exclusions="**/*Tests*/**,**/Program.cs,**/Startup.cs"
-          
-          # Build do projeto
-          dotnet build QuiosqueFood3000.Order.sln --configuration Release
-          
-          # Execução dos testes com cobertura
-          dotnet test QuiosqueFood3000.Order.sln --no-build --configuration Release --collect:"XPlat Code Coverage" --results-directory "TestResults" --logger "trx" -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
-          
-          # Finalização da análise
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-      - name: List TestResults directory (Debug)
-        run: |
-          echo "=== Estrutura do diretório TestResults ==="
-          ls -la TestResults
-          echo "=== Procurando por arquivos de cobertura ==="
-          find TestResults -name "*.xml" -type f
-          echo "=== Conteúdo completo ==="
-          find TestResults -type f
-        shell: bash
-      - name: Upload coverage reports to SonarQube (Alternative method)
-        if: failure()
-        shell: powershell
-        run: |
-          # Método alternativo caso o anterior falhe
-          $coverageFiles = Get-ChildItem -Path "TestResults" -Filter "coverage.cobertura.xml" -Recurse
-          if ($coverageFiles.Count -gt 0) {
-            Write-Host "Encontrados arquivos de cobertura Cobertura:"
-            $coverageFiles | ForEach-Object { Write-Host $_.FullName }
+          try {
+            # Início da análise do SonarQube
+            .\.sonar\scanner\dotnet-sonarscanner begin `
+              /k:"DaleFederal_QuiosqueFood3000-Order" `
+              /o:"dalefederal" `
+              /d:sonar.token="${{ secrets.SONAR_TOKEN }}" `
+              /d:sonar.host.url="https://sonarcloud.io" `
+              /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" `
+              /d:sonar.cs.opencover.reportsPaths="**/TestResults/**/coverage.opencover.xml" `
+              /d:sonar.coverage.exclusions="**/*Tests*/**,**/Program.cs,**/Startup.cs"
             
-            # Reiniciar análise com formato Cobertura
-            .\.sonar\scanner\dotnet-sonarscanner begin /k:"DaleFederal_QuiosqueFood3000-Order" /o:"dalefederal" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="https://sonarcloud.io" /d:sonar.cs.vstest.reportsPaths="**/TestResults/**/*.trx" /d:sonar.coverageReportPaths="**/TestResults/**/coverage.cobertura.xml"
+            # Build do projeto
+            dotnet build QuiosqueFood3000.Order.sln --configuration Release --no-restore
+            
+            # Execução dos testes com cobertura
+            dotnet test QuiosqueFood3000.Order.sln `
+              --no-build `
+              --configuration Release `
+              --collect:"XPlat Code Coverage" `
+              --results-directory "TestResults" `
+              --logger "trx" `
+              -- DataCollectionRunSettings.DataCollectors.DataCollector.Configuration.Format=opencover
+            
+            # Finalização da análise
             .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
-          } else {
-            Write-Host "Nenhum arquivo de cobertura encontrado"
+            
+            Write-Host "✅ SonarQube analysis completed successfully"
           }
+          catch {
+            Write-Error "❌ SonarQube analysis failed: $_"
+            exit 1
+          }
+
+  test:
+    name: Run Tests
+    runs-on: windows-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x' # Ajuste conforme sua versão
+          
+      - name: Restore dependencies
+        run: dotnet restore QuiosqueFood3000.Order.sln
+        
+      - name: Build
+        run: dotnet build QuiosqueFood3000.Order.sln --configuration Release --no-restore
+        
+      - name: Run tests
+        run: |
+          dotnet test QuiosqueFood3000.Order.sln `
+            --no-build `
+            --configuration Release `
+            --logger "trx" `
+            --results-directory "TestResults"
+        shell: powershell
+        
+      - name: Publish test results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: 'Test Results'
+          path: 'TestResults/*.trx'
+          reporter: 'dotnet-trx'
