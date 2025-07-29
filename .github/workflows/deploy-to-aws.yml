@@ -9,9 +9,9 @@ on:
 env:
   AWS_REGION: us-east-1
   ECR_REPOSITORY: quiosquefood3000-order
-  ECS_SERVICE: QuiosqueFood3000Order-production-service
-  ECS_CLUSTER: QuiosqueFood3000Order-production-cluster
-  ECS_TASK_DEFINITION: QuiosqueFood3000Order-production-task
+  ECS_SERVICE: quiosquefood3000oder-production-service
+  ECS_CLUSTER: quiosquefood3000order-production-cluster
+  ECS_TASK_DEFINITION: quiosquefood3000order-production-task
   CONTAINER_NAME: order-api
 
 jobs:
@@ -106,12 +106,7 @@ jobs:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: true
-
-    - name: Update MongoDB Atlas connection (if using Atlas)
-      run: |
-        echo "Update your application configuration to use MongoDB Atlas or DocumentDB"
-        echo "Connection string should be set in ECS task definition environment variables"
+        wait-for-service-stability: true 
 
   deploy-infrastructure:
     name: Deploy Infrastructure (Manual Trigger)
