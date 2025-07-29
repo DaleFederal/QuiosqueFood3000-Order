@@ -51,3 +51,9 @@ variable "container_port" {
   type        = number
   default     = 8080
 }
+
+variable "db_password" {
+  description = "Password for the PostgreSQL database"
+  type        = string
+  sensitive   = true
+}

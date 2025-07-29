@@ -30,6 +30,10 @@ resource "aws_ecs_task_definition" "app" {
         {
           name  = "ASPNETCORE_URLS"
           value = "http://+:${var.container_port}"
+        },
+        {
+          name  = "ConnectionStrings__DefaultConnection"
+          value = "Host=${aws_db_instance.postgres.endpoint};Port=5432;Database=QuiosqueFood3000OrderDB;Username=postgres;Password=${var.db_password};SSL Mode=Prefer;Trust Server Certificate=true;"
         }
       ]
 
