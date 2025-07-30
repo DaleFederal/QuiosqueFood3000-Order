@@ -9,6 +9,7 @@ COPY QuiosqueFood3000.Application/*.csproj ./QuiosqueFood3000.Application/
 COPY QuiosqueFood3000.Domain/*.csproj ./QuiosqueFood3000.Domain/
 COPY QuiosqueFood3000.Infraestructure/*.csproj ./QuiosqueFood3000.Infraestructure/
 COPY QuiosqueFood3000.Order.UnitTests/*.csproj ./QuiosqueFood3000.Order.UnitTests/
+COPY QuiosqueFood3000.Order.BddTests/*.csproj ./QuiosqueFood3000.Order.BddTests/
 
 # Restore dependencies with verbose logging and clear cache
 RUN dotnet nuget locals all --clear
