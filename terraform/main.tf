@@ -93,7 +93,7 @@ resource "aws_subnet" "private" {
 
 # NAT Gateways
 resource "aws_eip" "nat" {
-  count = 2
+  count = 1
 
   domain     = "vpc"
   depends_on = [aws_internet_gateway.main]
