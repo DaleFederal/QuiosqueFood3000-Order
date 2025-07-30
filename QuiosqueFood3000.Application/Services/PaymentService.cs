@@ -32,13 +32,13 @@ public class PaymentService(IOrderRepository orderRepository, IHttpClientFactory
     public async Task RequestPayment(OrderDto order)
     {
         var httpClient = httpClientFactory.CreateClient();
-        var paymentUrl = "http://quiosquepay:5000/api/Remittances/generate";
+        var paymentUrl = "http://qp-prod-alb-2011577136.us-east-1.elb.amazonaws.com/api/Remittances/generate";
 
         var paymentRequest = new
         {
             OrderId = order.Id,
             Amount = order.TotalValue,
-            WebhookUrl = "http://quiosque-order:5001/api/Webhook/payment-status"
+            WebhookUrl = "http://vd0s-prod-alb-968033309.us-east-1.elb.amazonaws.com/api/Webhook/payment-status"
         };
 
         var json = JsonSerializer.Serialize(paymentRequest);
