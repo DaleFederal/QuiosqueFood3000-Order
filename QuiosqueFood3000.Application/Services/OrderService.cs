@@ -129,7 +129,7 @@ public class OrderService(IOrderRepository orderRepository, IPaymentService paym
 
         // Send order to kitchen
         var httpClient = httpClientFactory.CreateClient();
-        var kitchenUrl = "http://quiosquekitchen:5002/OrderSolicitation";
+        var kitchenUrl = "http://qf3k-prod-alb-425120430.us-east-1.elb.amazonaws.com/OrderSolicitation";
 
         var kitchenOrder = new KitchenOrderSolicitationDto
         {
